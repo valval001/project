@@ -1,0 +1,39 @@
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.product-card {
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+}
+
+.product-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-brand {
+    font-weight: 700;
+}
+
+footer {
+    margin-top: 50px;
+    font-size: 0.9rem;
+}
+.pagination {
+    text-align: center;
+    margin-top: 30px;
+}
+.pagination a {
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 0 5px;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    color: #333;
+}
+.pagination a.active {
+    background-color: #007BFF;
+    color: white;
+    border-color: #007BFF;
+}
