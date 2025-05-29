@@ -5,6 +5,8 @@ pipeline {
         SONARQUBE = 'MySonarQube'
         SONAR_TOKEN = credentials('sonar-token')
         FLASK_SECRET_KEY = credentials('flask-secret')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
+        IMAGE_NAME = 'ditisspriyanshu/jenkins:latest'
     }
 
     stages {
@@ -18,9 +20,8 @@ pipeline {
             steps {
                 withSonarQubeEnv(SONARQUBE) {
                     sh """
-			echo $FLASK_SECRET_KEY > /dev/null
-                        sonar-scanner \
-                        -Dsonar.login=${SONAR_TOKEN}
+                        echo $FLASK_SECRET_KEY > /dev/null
+                        sonar-scanner -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
             }
@@ -30,6 +31,25 @@ pipeline {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    sh """
+                        echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
+                        docker push ${IMAGE_NAME}
+                    """
                 }
             }
         }
