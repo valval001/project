@@ -5,7 +5,9 @@ pipeline {
         SONARQUBE = 'MySonarQube'
         SONAR_TOKEN = credentials('sonar-token')
         FLASK_SECRET_KEY = credentials('flask-secret')
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         IMAGE_NAME = 'ditisspriyanshu/jenkins'
+
     }
 
     stages {
@@ -14,23 +16,22 @@ pipeline {
                 git url: 'https://github.com/valval001/project.git', branch: 'master'
             }
         }
-
-    stage('Setup Virtual Environment and Install Requirements') {
-        steps {
-            sh '''
-                python3 -m venv venv
-                . venv/bin/activate
-                pip install -r requirements.txt
-            '''
-        }
-    }
-        stage('Run Tests') {
+        stage('Set Up Virtual Environment') {
             steps {
                 sh '''
-                    echo "Running Pytest..."
-		    . venv/bin/activate
-                    echo "Running unittest..."
-		    pytest
+                    python3 -m venv venv
+                    . venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+
+        stage('Run Pytest') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+                    pytest
                 '''
             }
         }
@@ -56,11 +57,9 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh """
-                        docker build -t ${IMAGE_NAME}:latest -t .
-                    """
-                }
+                sh '''
+                    docker build -t ${IMAGE_NAME}:latest -t .
+                '''
             }
         }
 
@@ -71,11 +70,21 @@ pipeline {
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                         docker push ${IMAGE_NAME}:latest
                         docker logout
-
-                        docker rmi ${IMAGE_NAME}:latest
                     """
                 }
             }
+        }
+        stage('Remove Local Docker Image') {
+            steps {
+                sh 'docker rmi ${IMAGE_NAME}:latest'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up virtual environment...'
+            sh 'rm -rf venv'
         }
     }
 }
