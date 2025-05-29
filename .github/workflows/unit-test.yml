@@ -28,8 +28,9 @@ jobs:
       - name: Run unit tests
         run: |
           source venv/bin/activate
+          export PYTHONPATH=.
           pytest
-
+          
       - name: Trigger Jenkins if tests pass
         if: success()
         run: |
