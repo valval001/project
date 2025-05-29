@@ -1,8 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
+from dotenv import load_dotenv
+load_dotenv()
 
+import os
 app = Flask(__name__)
-app.secret_key = 'super-secret-key'
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
 
 # SQLAlchemy DB config
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:25258202Pr@database-1.cm14ws46qfvu.us-east-1.rds.amazonaws.com/product'
