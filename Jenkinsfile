@@ -7,7 +7,6 @@ pipeline {
         FLASK_SECRET_KEY = credentials('flask-secret')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         IMAGE_NAME = 'ditisspriyanshu/jenkins'
-
     }
 
     stages {
@@ -16,6 +15,7 @@ pipeline {
                 git url: 'https://github.com/valval001/project.git', branch: 'master'
             }
         }
+
         stage('Set Up Virtual Environment') {
             steps {
                 sh '''
@@ -58,7 +58,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME}:latest -t .
+                    docker build -t ${IMAGE_NAME}:latest .
                 '''
             }
         }
@@ -74,9 +74,10 @@ pipeline {
                 }
             }
         }
+
         stage('Remove Local Docker Image') {
             steps {
-                sh 'docker rmi ${IMAGE_NAME}:latest'
+                sh 'docker rmi ${IMAGE_NAME}:latest || true'
             }
         }
     }
