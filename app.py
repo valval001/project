@@ -1,7 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
-from dotenv import load_dotenv
-load_dotenv()
 
 import os
 app = Flask(__name__)
