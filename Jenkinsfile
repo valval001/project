@@ -4,6 +4,7 @@ pipeline {
     environment {
         SONARQUBE = 'MySonarQube'
         SONAR_TOKEN = credentials('sonar-token')
+        FLASK_SECRET_KEY = credentials('flask-secret')
     }
 
     stages {
@@ -17,6 +18,7 @@ pipeline {
             steps {
                 withSonarQubeEnv(SONARQUBE) {
                     sh """
+			echo $FLASK_SECRET_KEY > /dev/null
                         sonar-scanner \
                         -Dsonar.login=${SONAR_TOKEN}
                     """
