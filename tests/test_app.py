@@ -46,11 +46,12 @@ def test_cart_view(client):
     mock_product.id = 1
     mock_product.name = "Test Product"
     mock_product.price = 100.0
+    mock_product.image_url = "http://example.com/image.jpg"
 
     with client.session_transaction() as sess:
         sess['cart'] = [1]
 
-    with patch('app.Product.query.get', return_value=mock_product):
+    with patch('app.Product.query.get', return_value=mock_product):  # Adjust 'app' to match your actual module name
         response = client.get('/cart')
         assert response.status_code == 200
         assert b'Test Product' in response.data
