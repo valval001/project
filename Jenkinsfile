@@ -15,19 +15,22 @@ pipeline {
             }
         }
 
-        stage('Install Dependencies') {
-            steps {
-                sh 'pip install -r requirements.txt'
-            }
+    stage('Setup Virtual Environment and Install Requirements') {
+        steps {
+            sh '''
+                python3 -m venv venv
+                . venv/bin/activate
+                pip install -r requirements.txt
+            '''
         }
-
+    }
         stage('Run Tests') {
             steps {
                 sh '''
                     echo "Running Pytest..."
-                    pytest --maxfail=1 --disable-warnings --tb=short
+		    . venv/bin/activate
                     echo "Running unittest..."
-                    python -m unittest discover -s tests
+		    pytest
                 '''
             }
         }
