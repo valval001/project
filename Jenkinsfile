@@ -49,6 +49,8 @@ pipeline {
                     sh """
                         echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
                         docker push ${IMAGE_NAME}
+			docker logout
+			docker rmi ${IMAGE_NAME}
                     """
                 }
             }
