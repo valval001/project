@@ -51,8 +51,9 @@ def test_cart_view(client):
     with client.session_transaction() as sess:
         sess['cart'] = [1]
 
-    with patch('app.Product.query.get', return_value=mock_product):  # Adjust 'app' to match your actual module name
-        response = client.get('/cart')
+    with patch('app.Product.query.get', return_value=mock_product):  # or '__main__.Product.query.get'
+        response = client.get('/cart', follow_redirects=True)
+        print(response.data.decode())  # For debugging
         assert response.status_code == 200
         assert b'Test Product' in response.data
 
