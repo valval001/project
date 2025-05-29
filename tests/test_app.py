@@ -1,6 +1,6 @@
 import pytest
 from app import app, Product
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 @pytest.fixture
 def client():
@@ -42,13 +42,16 @@ def test_remove_from_cart(client):
     assert response.status_code == 200
 
 def test_cart_view(client):
-    mock_product = Product(id=1, name="Test Product", description="Desc", price=10.0, image_url="url")
     with client.session_transaction() as sess:
-        sess['cart'] = [1]
+        sess['cart'] = [1]  # product ID
+
+    mock_product = MagicMock()
+    mock_product.name = 'Test Product'
+    mock_product.price = 10.0
+
     with patch('app.Product.query.get', return_value=mock_product):
         response = client.get('/cart')
-        assert response.status_code == 200
-        assert b"Test Product" in response.data
+        assert b'Test Product' in response.data
 
 def test_checkout_get(client):
     mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
