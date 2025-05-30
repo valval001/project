@@ -63,6 +63,9 @@ pipeline {
                     # Fail if critical vulnerabilities are found
                     if grep -q "CRITICAL" trivy-image-report.txt; then
                         echo "Critical vulnerabilities found in Docker image."
+                        echo "Removing the Image....."
+                        docker rmi ${IMAGE_NAME}
+                        echo "Image Removed....."
                         exit 1
                     fi
                 '''
