@@ -57,6 +57,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Scanning Docker image for vulnerabilities..."
+                    export TRIVY_DISABLE_VEX_NOTICE=true
                     trivy image --exit-code 1 --severity CRITICAL ${IMAGE_NAME} > trivy-image-report.txt || true
                     cat trivy-image-report.txt
 
