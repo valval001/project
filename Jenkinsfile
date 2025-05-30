@@ -35,11 +35,37 @@ pipeline {
             }
         }
 
+        stage('Trivy Dockerfile Scan') {
+            steps {
+                sh '''
+                    echo "Scanning Dockerfile for misconfigurations..."
+                    trivy config Dockerfile > trivy-dockerfile-report.txt || true
+                    cat trivy-dockerfile-report.txt
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
                     sh "docker build -t ${IMAGE_NAME} ."
                 }
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    echo "Scanning Docker image for vulnerabilities..."
+                    trivy image --exit-code 1 --severity CRITICAL ${IMAGE_NAME} > trivy-image-report.txt || true
+                    cat trivy-image-report.txt
+
+                    # Fail if critical vulnerabilities are found
+                    if grep -q "CRITICAL" trivy-image-report.txt; then
+                        echo "Critical vulnerabilities found in Docker image."
+                        exit 1
+                    fi
+                '''
             }
         }
 
@@ -49,8 +75,8 @@ pipeline {
                     sh """
                         echo "${DOCKERHUB_CREDENTIALS_PSW}" | docker login -u "${DOCKERHUB_CREDENTIALS_USR}" --password-stdin
                         docker push ${IMAGE_NAME}
-			docker logout
-			docker rmi ${IMAGE_NAME}
+                        docker logout
+                        docker rmi ${IMAGE_NAME}
                     """
                 }
             }
