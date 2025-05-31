@@ -31,6 +31,14 @@ pipeline {
             }
         }
 
+        stage("OWASP: Dependency check"){
+            steps{
+                script{
+                    owasp_dependency()
+                }
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv(SONARQUBE) {
