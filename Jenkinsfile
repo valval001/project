@@ -32,19 +32,19 @@ pipeline {
             }
         }
 
-        stages {
-            stage('OWASP Dependency Check') {
-                steps {
-                    sh '''
-                        $DEPENDENCY_CHECK_HOME/bin/dependency-check.sh \
-                        --project "MyProject" \
-                        --scan . \
-                        --format "HTML" \
-                        --out dependency-check-report
-                    '''
-                }
+
+        stage('OWASP Dependency Check') {
+            steps {
+                sh '''
+                    $DEPENDENCY_CHECK_HOME/bin/dependency-check.sh \
+                    --project "MyProject" \
+                    --scan . \
+                    --format "HTML" \
+                    --out dependency-check-report
+                '''
             }
         }
+
 
         stage('SonarQube Analysis') {
             steps {
