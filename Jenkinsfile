@@ -50,19 +50,19 @@ pipeline {
                     --out dependency-check-report
                 '''
             }
-        post {
-            always {
-                dependencyCheckPublisher(
-                    failedTotalCritical: 0,
-                    unstableTotalHigh: 5,
-                    unstableTotalMedium: 10,
-                    failedNewCritical: 0,
-                    unstableNewHigh: 5,
-                    unstableNewMedium: 10
-                )
-                archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.*', fingerprint: true
+            post {
+                always {
+                    dependencyCheckPublisher(
+                        failedTotalCritical: 0,
+                        unstableTotalHigh: 5,
+                        unstableTotalMedium: 10,
+                        failedNewCritical: 0,
+                        unstableNewHigh: 5,
+                        unstableNewMedium: 10
+                    )
+                    archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.*', fingerprint: true
+                }
             }
-        }
 
         stage('SonarQube Analysis') {
             steps {
