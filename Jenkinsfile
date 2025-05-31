@@ -1,16 +1,13 @@
 pipeline {
     agent any
 
-    tools {
-        dependencyCheck 'OWASP'  // This should match your tool name
-    }
-
     environment {
         SONARQUBE = 'MySonarQube'
         SONAR_TOKEN = credentials('sonar-token')
         FLASK_SECRET_KEY = credentials('flask-secret')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         IMAGE_NAME = 'ditisspriyanshu/jenkins:latest'
+        DEPENDENCY_CHECK_HOME = tool 'OWASP'
     }
 
     stages {
@@ -35,10 +32,17 @@ pipeline {
             }
         }
 
-        stage('OWASP Dependency-Check') {
-            steps {
-                // Run dependency-check scan on the workspace directory
-                dependencyCheck additionalArguments: '', odcInstallation: 'OWASP', pattern: '**/requirements.txt', skipOnError: false, failBuildOnCVSS: 7.0
+        stages {
+            stage('OWASP Dependency Check') {
+                steps {
+                    sh '''
+                        $DEPENDENCY_CHECK_HOME/bin/dependency-check.sh \
+                        --project "MyProject" \
+                        --scan . \
+                        --format "HTML" \
+                        --out dependency-check-report
+                    '''
+                }
             }
         }
 
