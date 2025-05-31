@@ -15,11 +15,12 @@ pipeline {
                 git url: 'https://github.com/valval001/project.git', branch: 'master'
             }
         }
-        
+
         stage('Bandit Security Scan') {
             steps {
                 sh '''
                     echo "Running Bandit security scan..."
+                    export PATH=$PATH:/var/lib/jenkins/.local/bin
                     bandit -r . -f html -o bandit-report.html || true
                 '''
             }
