@@ -43,6 +43,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Running OWASP Dependency Check..."
+                    mkdir -p dependency-check-report
                     $DEPENDENCY_CHECK_HOME/bin/dependency-check.sh \
                     --project "MyProject" \
                     --scan . \
