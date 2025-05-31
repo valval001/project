@@ -38,7 +38,7 @@ pipeline {
         stage('OWASP Dependency-Check') {
             steps {
                 // Run dependency-check scan on the workspace directory
-                dependencyCheck()
+                dependencyCheck additionalArguments: '', odcInstallation: 'OWASP', pattern: '**/requirements.txt', skipOnError: false, failBuildOnCVSS: 7.0
             }
         }
 
