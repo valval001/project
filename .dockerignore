@@ -12,3 +12,4 @@ sonar-project.properties
 Dockerfile
 Jenkinsfile
 *.md
+setup.sh
