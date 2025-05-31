@@ -15,6 +15,20 @@ pipeline {
                 git url: 'https://github.com/valval001/project.git', branch: 'master'
             }
         }
+        
+        stage('Bandit Security Scan') {
+            steps {
+                sh '''
+                    echo "Running Bandit security scan..."
+                    bandit -r . -f html -o bandit-report.html || true
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'bandit-report.html', fingerprint: true
+                }
+            }
+        }
 
         stage('SonarQube Analysis') {
             steps {
