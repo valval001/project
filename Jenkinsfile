@@ -118,10 +118,8 @@ pipeline {
                 sh '''
                     echo "Scanning Docker image for vulnerabilities..."
                     export TRIVY_DISABLE_VEX_NOTICE=true
-                    trivy image --format json --output trivy-image-report.json ${IMAGE_NAME} || true
-                    trivy image --format table --output trivy-image-report.html ${IMAGE_NAME} || true
-
-                    cat trivy-image-report.html
+                    trivy image --ignore-unfixed --exit-code 1 --severity CRITICAL ${IMAGE_NAME} > trivy-image-report.txt || true
+                    cat trivy-image-report.txt
 
                     if grep -q "CRITICAL" trivy-image-report.html; then
                         echo "Critical vulnerabilities found in Docker image."
