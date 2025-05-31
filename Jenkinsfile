@@ -31,11 +31,10 @@ pipeline {
             }
         }
 
-        stage("OWASP: Dependency check"){
-            steps{
-                script{
-                    owasp_dependency()
-                }
+       stage('OWASP Dependency-Check') {
+            steps {
+                // Run dependency-check scan on the workspace directory
+                dependencyCheck additionalArguments: '', odcInstallation: '', pattern: '**/*.*', skipOnError: false, failBuildOnCVSS: 7.0, useMaven: false
             }
         }
 
