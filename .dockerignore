@@ -13,3 +13,4 @@ Dockerfile
 Jenkinsfile
 *.md
 setup.sh
+dependency-check-report/
