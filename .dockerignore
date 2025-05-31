@@ -1,47 +1,29 @@
-# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Virtual environments
 .env
 .venv/
 env/
 venv/
 *.env
-
-# Coverage/test artifacts
 coverage/
 htmlcov/
 *.cover
 *.log
 *.pdb
 *.sqlite3
-
-# Security/scan reports (but not real source files)
 bandit-report.*
 dependency-check-report/
 trivy-*.txt
 trivy-*.json
-*.sarif
-
-# SonarQube
+trivy-*.html
 .sonar/
 .sonar-project.properties
-
-# Git and VCS
 .git/
 .gitignore
-
-# Editor/OS-specific
 *.swp
 *.DS_Store
 .idea/
 .vscode/
 *.bak
-
-# Docker/Jenkins
-Dockerfile
-.dockerignore
-Jenkinsfile
