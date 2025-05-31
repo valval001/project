@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        dependencyCheck 'OWASP'  // This should match your tool name
+    }
+
     environment {
         SONARQUBE = 'MySonarQube'
         SONAR_TOKEN = credentials('sonar-token')
@@ -31,10 +35,10 @@ pipeline {
             }
         }
 
-       stage('OWASP Dependency-Check') {
+        stage('OWASP Dependency-Check') {
             steps {
                 // Run dependency-check scan on the workspace directory
-                dependencyCheck additionalArguments: '', odcInstallation: '', pattern: '**/*.*', skipOnError: false, failBuildOnCVSS: 7.0, useMaven: false
+                dependencyCheck()
             }
         }
 
@@ -108,4 +112,11 @@ pipeline {
             }
         }
     }
+
+    post {
+        always {
+            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+        }
+    }
+   
 }
