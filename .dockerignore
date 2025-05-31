@@ -1,16 +1,53 @@
+# Byte-compiled / cache files
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
+
+# Unit test / coverage reports
+coverage/
+htmlcov/
+*.cover
+*.pyc
 *.pyd
-.Python
-env/
-venv/
+*.pdb
+*.log
+*.sqlite3
+
+# Test / scan reports
+bandit-report.*
+dependency-check-report/
+trivy-*.*
+*.sarif
+*.json
+*.xml
+*.txt
+*.html
+
+# Docker related
+Dockerfile
+.dockerignore
+
+# SonarQube
+.sonar/
+.sonar-project.properties
+
+# Git
 .git/
 .gitignore
-tests/
-sonar-project.properties
-Dockerfile
+
+# Jenkins
 Jenkinsfile
-*.md
-setup.sh
-dependency-check-report/
+
+# Python environments
+.env
+.venv
+env/
+venv/
+*.env
+
+# OS or Editor-specific
+*.swp
+*.DS_Store
+.idea/
+.vscode/
+*.bak

@@ -22,29 +22,47 @@ pipeline {
                 sh '''
                     echo "Running Bandit security scan..."
                     export PATH=$PATH:/var/lib/jenkins/.local/bin
-                    bandit -r . -f html -o bandit-report.html || true
+                    bandit -r . -f html -o bandit-report.html -f sarif -o bandit-report.sarif || true
                 '''
             }
             post {
                 always {
-                    archiveArtifacts artifacts: 'bandit-report.html', fingerprint: true
+                    archiveArtifacts artifacts: 'bandit-report.*', fingerprint: true
+                    recordIssues enabledForFailure: true, tools: [sarif(pattern: 'bandit-report.sarif')]
+                    publishHTML(target: [
+                        reportName: 'Bandit Report',
+                        reportDir: '.',
+                        reportFiles: 'bandit-report.html',
+                        keepAll: true
+                    ])
                 }
             }
         }
 
-
         stage('OWASP Dependency Check') {
             steps {
                 sh '''
+                    echo "Running OWASP Dependency Check..."
                     $DEPENDENCY_CHECK_HOME/bin/dependency-check.sh \
                     --project "MyProject" \
                     --scan . \
-                    --format "HTML" \
+                    --format ALL \
                     --out dependency-check-report
                 '''
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'dependency-check-report/*', fingerprint: true
+                    recordIssues enabledForFailure: true, tools: [dependencyCheck(pattern: 'dependency-check-report/dependency-check-report.xml')]
+                    publishHTML(target: [
+                        reportName: 'Dependency Check Report',
+                        reportDir: 'dependency-check-report',
+                        reportFiles: 'dependency-check-report.html',
+                        keepAll: true
+                    ])
+                }
+            }
         }
-
 
         stage('SonarQube Analysis') {
             steps {
@@ -69,9 +87,19 @@ pipeline {
             steps {
                 sh '''
                     echo "Scanning Dockerfile for misconfigurations..."
-                    trivy config Dockerfile > trivy-dockerfile-report.txt || true
-                    cat trivy-dockerfile-report.txt
+                    trivy config --format table --output trivy-dockerfile-report.html Dockerfile || true
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-dockerfile-report.html', fingerprint: true
+                    publishHTML(target: [
+                        reportName: 'Trivy Dockerfile Report',
+                        reportDir: '.',
+                        reportFiles: 'trivy-dockerfile-report.html',
+                        keepAll: true
+                    ])
+                }
             }
         }
 
@@ -88,18 +116,29 @@ pipeline {
                 sh '''
                     echo "Scanning Docker image for vulnerabilities..."
                     export TRIVY_DISABLE_VEX_NOTICE=true
-                    trivy image --ignore-unfixed --exit-code 1 --severity CRITICAL ${IMAGE_NAME} > trivy-image-report.txt || true
-                    cat trivy-image-report.txt
+                    trivy image --format json --output trivy-image-report.json ${IMAGE_NAME} || true
+                    trivy image --format table --output trivy-image-report.html ${IMAGE_NAME} || true
 
-                    # Fail if critical vulnerabilities are found
-                    if grep -q "CRITICAL" trivy-image-report.txt; then
+                    cat trivy-image-report.html
+
+                    if grep -q "CRITICAL" trivy-image-report.html; then
                         echo "Critical vulnerabilities found in Docker image."
-                        echo "Removing the Image....."
                         docker rmi ${IMAGE_NAME}
-                        echo "Image Removed....."
                         exit 1
                     fi
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-image-report.*', fingerprint: true
+                    recordIssues enabledForFailure: true, tools: [trivy(pattern: 'trivy-image-report.json')]
+                    publishHTML(target: [
+                        reportName: 'Trivy Image Report',
+                        reportDir: '.',
+                        reportFiles: 'trivy-image-report.html',
+                        keepAll: true
+                    ])
+                }
             }
         }
 
@@ -117,5 +156,9 @@ pipeline {
         }
     }
 
-   
+    post {
+        always {
+            cleanWs()
+        }
+    }
 }
