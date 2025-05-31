@@ -117,10 +117,5 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
-        }
-    }
    
 }
