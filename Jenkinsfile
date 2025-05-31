@@ -63,6 +63,7 @@ pipeline {
                     archiveArtifacts artifacts: 'dependency-check-report/dependency-check-report.*', fingerprint: true
                 }
             }
+        }
 
         stage('SonarQube Analysis') {
             steps {
