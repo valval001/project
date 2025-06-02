@@ -107,7 +107,7 @@ pipeline {
 
         stage('SBOM - Source') {
             steps {
-                sh 'syft dir:. -o cyclonedx-json > sbom-source.json'
+                sh '/var/lib/jenkins/bin/syft dir:. -o cyclonedx-json > sbom-source.json'
                 archiveArtifacts artifacts: 'sbom-source.json', fingerprint: true
             }
         }
@@ -123,8 +123,7 @@ pipeline {
         stage('SBOM - Image') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_NAME} .
-                    syft ${IMAGE_NAME} -o cyclonedx-json > sbom-image.json
+                    /var/lib/jenkins/bin/syft ${IMAGE_NAME} -o cyclonedx-json > sbom-image.json
                 '''
                 archiveArtifacts artifacts: 'sbom-image.json', fingerprint: true
             }
