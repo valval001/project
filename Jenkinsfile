@@ -105,11 +105,28 @@ pipeline {
             }
         }
 
+        stage('SBOM - Source') {
+            steps {
+                sh 'syft dir:. -o cyclonedx-json > sbom-source.json'
+                archiveArtifacts artifacts: 'sbom-source.json', fingerprint: true
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
                     sh "docker build -t ${IMAGE_NAME} ."
                 }
+            }
+        }
+
+        stage('SBOM - Image') {
+            steps {
+                sh '''
+                    docker build -t myapp:latest .
+                    syft myapp:latest -o cyclonedx-json > sbom-image.json
+                '''
+                archiveArtifacts artifacts: 'sbom-image.json', fingerprint: true
             }
         }
 
