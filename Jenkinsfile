@@ -129,6 +129,17 @@ pipeline {
             }
         }
 
+        stage('Upload SBOM to Dependency-Track') {
+            steps {
+                dependencyTrackPublisher artifact: 'sbom-image.json',
+                    projectName: 'ecommerce-image',
+                    projectVersion: '1.0.0',
+                    autoCreate: true,
+                    synchronous: true
+            }
+        }
+
+
         stage('Trivy Image Scan') {
             steps {
                 sh '''
