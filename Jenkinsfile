@@ -123,8 +123,8 @@ pipeline {
         stage('SBOM - Image') {
             steps {
                 sh '''
-                    docker build -t myapp:latest .
-                    syft myapp:latest -o cyclonedx-json > sbom-image.json
+                    docker build -t ${IMAGE_NAME} .
+                    syft ${IMAGE_NAME} -o cyclonedx-json > sbom-image.json
                 '''
                 archiveArtifacts artifacts: 'sbom-image.json', fingerprint: true
             }
