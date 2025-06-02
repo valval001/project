@@ -135,7 +135,7 @@ pipeline {
                     publishHTML(target: [
                         reportName: 'Trivy Image Report',
                         reportDir: '.',
-                        reportFiles: 'trivy-image-report.html',
+                        reportFiles: 'trivy-image-report.txt',
                         keepAll: true
                     ])
                 }
