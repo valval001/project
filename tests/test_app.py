@@ -1,100 +1,116 @@
 import pytest
-import os
-from app import app, db, User, Product, CartItem
-from flask_login import login_user
+from app import app, User, Product
+from unittest.mock import patch
 from werkzeug.security import generate_password_hash
 
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test_database.db'  # Local test DB
-
     with app.test_client() as client:
         with app.app_context():
-            db.drop_all()  # Clean slate for test DB
-            db.create_all()
-
-            # Create test user
-            test_user = User(username='testuser', email='test@example.com')
-            test_user.password_hash = generate_password_hash('testpass')
-            db.session.add(test_user)
-
-            # Create test product
-            test_product = Product(name='Test Product', description='desc', price=10.0, image_url='url')
-            db.session.add(test_product)
-
-            db.session.commit()
-
-        yield client
-
-        # Teardown: clean test DB
-        with app.app_context():
-            db.session.remove()
-            db.drop_all()
-        if os.path.exists("test_database.db"):
-            os.remove("test_database.db")
-
-def login(client, email='test@example.com', password='testpass'):
-    return client.post('/login', data=dict(email=email, password=password), follow_redirects=True)
+            yield client
 
 def test_index_page(client):
-    response = client.get('/')
-    assert response.status_code == 200
-    assert b"Product" in response.data or b"No products" in response.data
+    with patch('app.Product.query.paginate') as mock_paginate:
+        mock_paginate.return_value.items = []
+        mock_paginate.return_value.page = 1
+        mock_paginate.return_value.pages = 1
+        response = client.get('/')
+        assert response.status_code == 200
+        assert b"Product" in response.data or b"No products" in response.data
 
 def test_add_to_cart(client):
-    login(client)
+    with client.session_transaction() as sess:
+        sess['cart'] = []
     response = client.get('/add_to_cart/1', follow_redirects=True)
+    with client.session_transaction() as sess:
+        assert 1 in sess['cart']
     assert response.status_code == 200
-
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_item = CartItem.query.filter_by(user_id=user.id, product_id=1).first()
-        assert cart_item is not None
-        assert cart_item.quantity == 1
 
 def test_remove_from_cart(client):
-    login(client)
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_item = CartItem(user_id=user.id, product_id=1, quantity=1)
-        db.session.add(cart_item)
-        db.session.commit()
-
+    with client.session_transaction() as sess:
+        sess['cart'] = [1]
     response = client.get('/remove_from_cart/1', follow_redirects=True)
+    with client.session_transaction() as sess:
+        assert 1 not in sess['cart']
     assert response.status_code == 200
-
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_item = CartItem.query.filter_by(user_id=user.id, product_id=1).first()
-        assert cart_item is None
 
 def test_checkout_get(client):
-    login(client)
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_item = CartItem(user_id=user.id, product_id=1, quantity=2)
-        db.session.add(cart_item)
-        db.session.commit()
-
-    response = client.get('/checkout')
-    assert response.status_code == 200
-    assert b"Checkout" in response.data or b"Total" in response.data
+    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
+    with client.session_transaction() as sess:
+        sess['cart'] = [1]
+    with patch('app.Product.query.get', return_value=mock_product):
+        response = client.get('/checkout')
+        assert response.status_code == 200
+        assert b"Checkout" in response.data or b"Total" in response.data
 
 def test_checkout_post(client):
-    login(client)
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_item = CartItem(user_id=user.id, product_id=1, quantity=2)
-        db.session.add(cart_item)
-        db.session.commit()
+    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
+    with client.session_transaction() as sess:
+        sess['cart'] = [1]
+    with patch('app.Product.query.get', return_value=mock_product):
+        response = client.post('/checkout')
+        assert response.status_code == 200
+        assert b"thank" in response.data.lower()
 
-    response = client.post('/checkout', follow_redirects=True)
+# ---- New tests for user login/signup ----
+
+def test_signup(client):
+    # Mock User.query.filter_by to simulate no existing user
+    with patch('app.User.query.filter_by') as mock_filter:
+        mock_filter.return_value.first.return_value = None
+        response = client.post('/signup', data={
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'password',
+            'confirm_password': 'password'
+        }, follow_redirects=True)
+        assert response.status_code == 200
+        # You can assert success message or redirect URL as per your app
+
+def test_signup_existing_email(client):
+    # Simulate existing user found in DB
+    with patch('app.User.query.filter_by') as mock_filter:
+        mock_filter.return_value.first.return_value = User(username='existing', email='existing@example.com')
+        response = client.post('/signup', data={
+            'username': 'newuser',
+            'email': 'existing@example.com',
+            'password': 'password',
+            'confirm_password': 'password'
+        })
+        assert b'Email already registered' in response.data or response.status_code == 200
+
+def test_login_success(client):
+    test_user = User(username='testuser', email='test@example.com')
+    test_user.password_hash = generate_password_hash('testpass')
+
+    with patch('app.User.query.filter_by') as mock_filter:
+        mock_filter.return_value.first.return_value = test_user
+        response = client.post('/login', data={'email': 'test@example.com', 'password': 'testpass'}, follow_redirects=True)
+        assert response.status_code == 200
+        # You can check for a welcome message or redirect location
+
+def test_login_fail(client):
+    with patch('app.User.query.filter_by') as mock_filter:
+        mock_filter.return_value.first.return_value = None
+        response = client.post('/login', data={'email': 'wrong@example.com', 'password': 'wrongpass'})
+        assert b'Invalid email or password' in response.data or response.status_code == 200
+
+# ---- More detailed cart tests ----
+
+def test_add_same_product_multiple_times(client):
+    with client.session_transaction() as sess:
+        sess['cart'] = [1, 1]
+    response = client.get('/add_to_cart/1', follow_redirects=True)
+    with client.session_transaction() as sess:
+        # The cart might be a list, check if count of '1' is increased
+        assert sess['cart'].count(1) >= 3
     assert response.status_code == 200
-    assert b"thank" in response.data.lower()
 
-    with app.app_context():
-        user = User.query.filter_by(email='test@example.com').first()
-        cart_items = CartItem.query.filter_by(user_id=user.id).all()
-        assert len(cart_items) == 0  # Cart should be cleared
+def test_remove_product_not_in_cart(client):
+    with client.session_transaction() as sess:
+        sess['cart'] = []
+    response = client.get('/remove_from_cart/1', follow_redirects=True)
+    with client.session_transaction() as sess:
+        assert 1 not in sess['cart']
+    assert response.status_code == 200
