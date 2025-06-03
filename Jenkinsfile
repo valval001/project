@@ -183,6 +183,23 @@ pipeline {
     }
 
     post {
+        success {
+            emailext (
+                subject: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: "Your Jenkins build passed. See details at ${env.BUILD_URL}",
+                to: 'priyanshuagarwal801@gmail.com'
+            )
+        }
+        failure {
+            emailext (
+                subject: "FAILURE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: "Your Jenkins build failed. See details at ${env.BUILD_URL}",
+                to: 'priyanshuagarwal801@gmail.com'
+            )
+        }
+    }
+
+    post {
         always {
             cleanWs()
         }
