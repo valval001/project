@@ -1,111 +1,97 @@
 import pytest
-from app import app, Product, User
-from unittest.mock import patch
+from app import app, db, User, Product, CartItem
+from flask import session
 
 @pytest.fixture
 def client():
+    # Setup app for testing
     app.config['TESTING'] = True
-    app.config['WTF_CSRF_ENABLED'] = False  # Disable CSRF for tests if using Flask-WTF
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'  # In-memory DB for testing
+    app.config['WTF_CSRF_ENABLED'] = False
     with app.test_client() as client:
         with app.app_context():
-            yield client
+            db.create_all()
+            # Create a sample product for cart tests
+            product = Product(name='Test Product', description='Desc', price=10.0, image_url='http://image.url')
+            db.session.add(product)
+            db.session.commit()
+        yield client
+        # Clean up DB after tests
+        with app.app_context():
+            db.drop_all()
 
-def login_test_user(client):
+def signup(client, username, email, password, confirm):
+    return client.post('/signup', data={
+        'username': username,
+        'email': email,
+        'password': password,
+        'confirm_password': confirm
+    }, follow_redirects=True)
+
+def login(client, email, password):
+    return client.post('/login', data={
+        'email': email,
+        'password': password
+    }, follow_redirects=True)
+
+def logout(client):
+    return client.get('/logout', follow_redirects=True)
+
+
+def test_signup_login_logout(client):
+    # Signup new user
+    resp = signup(client, 'testuser', 'test@example.com', 'testpass', 'testpass')
+    assert b"Account created" in resp.data
+
+    # Login with new user
+    resp = login(client, 'test@example.com', 'testpass')
+    assert b"Logged in successfully" in resp.data
+
+    # Logout
+    resp = logout(client)
+    assert b"You have been logged out" in resp.data
+
+def test_add_remove_cart(client):
+    # Signup and login
+    signup(client, 'testuser', 'test@example.com', 'testpass', 'testpass')
+    login(client, 'test@example.com', 'testpass')
+
+    # Add product to cart (product id 1 since only one product created)
+    resp = client.get('/add_to_cart/1', follow_redirects=True)
+    assert resp.status_code == 200
     with client.session_transaction() as sess:
-        sess['user_id'] = 1  # Adjust if your app uses different key for logged-in user
+        assert 1 in sess.get('cart', [])
 
-def test_add_to_cart(client):
+    # Check cart page
+    resp = client.get('/cart')
+    assert b'Test Product' in resp.data
+
+    # Remove product from cart
+    resp = client.get('/remove_from_cart/1', follow_redirects=True)
+    assert resp.status_code == 200
     with client.session_transaction() as sess:
-        sess['cart'] = []
-    # add product id=1 to cart, follow redirect to get updated session
-    response = client.get('/add_to_cart/1', follow_redirects=True)
-    with client.session_transaction() as sess:
-        assert 1 in sess['cart'], f"Cart after adding: {sess['cart']}"
-    assert response.status_code == 200
+        # Cart should be empty now
+        assert sess.get('cart', []) == []
 
-def test_remove_from_cart(client):
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    response = client.get('/remove_from_cart/1', follow_redirects=True)
-    with client.session_transaction() as sess:
-        assert 1 not in sess['cart'], f"Cart after removing: {sess['cart']}"
-    assert response.status_code == 200
+def test_checkout_clears_cart(client):
+    signup(client, 'testuser', 'test@example.com', 'testpass', 'testpass')
+    login(client, 'test@example.com', 'testpass')
 
-def test_add_same_product_multiple_times(client):
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    response = client.get('/add_to_cart/1', follow_redirects=True)
-    with client.session_transaction() as sess:
-        count = sess['cart'].count(1)
-        assert count == 2, f"Cart contents: {sess['cart']}"
-    assert response.status_code == 200
+    # Add product to cart twice (quantity=2)
+    client.get('/add_to_cart/1')
+    client.get('/add_to_cart/1')
 
-def test_checkout_get(client):
-    login_test_user(client)
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
-    with patch('app.Product.query.get', return_value=mock_product):
-        response = client.get('/checkout', follow_redirects=True)
-        assert response.status_code == 200
-        assert b"checkout" in response.data.lower() or b"total" in response.data.lower()
+    resp = client.get('/cart')
+    assert b'Test Product' in resp.data
 
-def test_checkout_post(client):
-    login_test_user(client)
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
-    with patch('app.Product.query.get', return_value=mock_product):
-        response = client.post('/checkout', follow_redirects=True)
-        assert response.status_code == 200
-        assert b"thank" in response.data.lower() or b"order placed" in response.data.lower()
+    # Checkout page GET
+    resp = client.get('/checkout')
+    assert b'Test Product' in resp.data
 
-def test_signup_new_email(client):
-    with patch('app.User.query.filter_by') as mock_filter:
-        mock_filter.return_value.first.return_value = None  # No user with this email
-        response = client.post('/signup', data={
-            'email': 'new@example.com',
-            'password': 'test123',
-            'confirm_password': 'test123'
-        }, follow_redirects=True)
-        assert response.status_code == 200
-        assert b"login" in response.data.lower() or b"welcome" in response.data.lower()
+    # Checkout POST to clear cart
+    resp = client.post('/checkout', follow_redirects=True)
+    assert b'Thank you' in resp.data
 
-def test_signup_existing_email(client):
-    # Create a mock user WITHOUT password kwarg, set attributes manually
-    mock_user = User()
-    mock_user.id = 1
-    mock_user.email = "existing@example.com"
-    with patch('app.User.query.filter_by') as mock_filter:
-        mock_filter.return_value.first.return_value = mock_user
-        response = client.post('/signup', data={
-            'email': 'existing@example.com',
-            'password': 'test123',
-            'confirm_password': 'test123'
-        }, follow_redirects=True)
-        assert b'Email already registered' in response.data or response.status_code == 200
-
-def test_login_success(client):
-    mock_user = User()
-    mock_user.id = 1
-    mock_user.email = "user@example.com"
-    # Patch password check
-    with patch('app.User.query.filter_by') as mock_filter, \
-         patch('app.check_password_hash') as mock_check_pw:
-        mock_filter.return_value.first.return_value = mock_user
-        mock_check_pw.return_value = True
-        response = client.post('/login', data={
-            'email': 'user@example.com',
-            'password': 'correctpassword'
-        }, follow_redirects=True)
-        assert response.status_code == 200
-        assert b"logout" in response.data.lower() or b"welcome" in response.data.lower()
-
-def test_login_failure(client):
-    with patch('app.User.query.filter_by') as mock_filter:
-        mock_filter.return_value.first.return_value = None
-        response = client.post('/login', data={
-            'email': 'wrong@example.com',
-            'password': 'nopassword'
-        }, follow_redirects=True)
-        assert b"Invalid email or password" in response.data or response.status_code == 200
+    # Cart should be empty now
+    resp = client.get('/cart')
+    assert b'Test Product' not in resp.data
