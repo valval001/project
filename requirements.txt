@@ -12,3 +12,4 @@ pymysql
 python-dotenv
 pytest
 pytest-mock
+flask-login
