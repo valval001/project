@@ -1,38 +1,44 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Your Cart</h1>
-{% if items %}
-<table class="table table-bordered align-middle">
+<h1 class="mb-4">Your Shopping Cart</h1>
+
+{% if not items %}
+    <p>Your cart is empty. <a href="{{ url_for('index') }}">Start shopping</a></p>
+{% else %}
+<table class="table table-striped align-middle">
     <thead>
         <tr>
             <th>Product</th>
-            <th>Qty</th>
             <th>Price</th>
-            <th>Subtotal</th>
-            <th>Actions</th>
+            <th style="width: 120px;">Quantity</th>
+            <th>Total</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
         {% for item in items %}
         <tr>
-            <td>{{ item.product.name }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>₹{{ item.product.price }}</td>
-            <td>₹{{ (item.product.price * item.quantity) | round(2) }}</td>
             <td>
-                <a href="{{ url_for('add_to_cart', product_id=item.product.id) }}" class="btn btn-sm btn-success">+</a>
-                <a href="{{ url_for('remove_from_cart', product_id=item.product.id) }}" class="btn btn-sm btn-danger">-</a>
+                <img src="{{ item.image_url }}" alt="{{ item.name }}" style="height: 50px; width: 50px; object-fit: contain;" />
+                {{ item.name }}
+            </td>
+            <td>INR{{ item.price }}</td>
+            <td>1</td>
+            <td>INR{{ item.price }}</td>
+            <td>
+                <a href="{{ url_for('remove_from_cart', product_id=item.id) }}" class="btn btn-danger btn-sm">Remove</a>
             </td>
         </tr>
         {% endfor %}
-        <tr>
-            <td colspan="3" class="text-end fw-bold">Total</td>
-            <td colspan="2" class="fw-bold">₹{{ total | round(2) }}</td>
-        </tr>
     </tbody>
+    <tfoot>
+        <tr>
+            <th colspan="3" class="text-end">Total:</th>
+            <th>INR{{ total }}</th>
+            <th></th>
+        </tr>
+    </tfoot>
 </table>
-<a href="{{ url_for('checkout') }}" class="btn btn-primary">Proceed to Checkout</a>
-{% else %}
-<p>Your cart is empty.</p>
+<a href="{{ url_for('checkout') }}" class="btn btn-primary float-end">Proceed to Checkout</a>
 {% endif %}
 {% endblock %}
