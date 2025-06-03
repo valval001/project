@@ -184,24 +184,18 @@ pipeline {
 
     post {
         success {
-            emailext (
-                subject: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-                body: "Your Jenkins build passed. See details at ${env.BUILD_URL}",
-                to: 'priyanshuagarwal801@gmail.com'
-            )
+            mail to: 'priyanshuagarwal801@gmail.com',
+                subject: "✅ Jenkins Build Passed - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Good news! Build #${env.BUILD_NUMBER} succeeded.\n\nCheck: ${env.BUILD_URL}"
         }
         failure {
-            emailext (
-                subject: "FAILURE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-                body: "Your Jenkins build failed. See details at ${env.BUILD_URL}",
-                to: 'priyanshuagarwal801@gmail.com'
-            )
+            mail to: 'priyanshuagarwal801@gmail.com',
+                subject: "❌ Jenkins Build Failed - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Oops! Build #${env.BUILD_NUMBER} failed.\n\nCheck: ${env.BUILD_URL}"
         }
-    }
-
-    post {
         always {
             cleanWs()
         }
     }
+        
 }
