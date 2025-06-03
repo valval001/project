@@ -6,21 +6,12 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-# app = Flask(__name__)
-# app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
-
-# # DB config (your Amazon RDS MySQL)
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:25258202Pr@database-1.cm14ws46qfvu.us-east-1.rds.amazonaws.com/product'
-# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
 
-# Use test DB if testing, else use production DB
-if os.environ.get('FLASK_ENV') == 'testing':
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:25258202Pr@database-1.cm14ws46qfvu.us-east-1.rds.amazonaws.com/product'
+# DB config (your Amazon RDS MySQL)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:25258202Pr@database-1.cm14ws46qfvu.us-east-1.rds.amazonaws.com/product'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
 db = SQLAlchemy(app)
