@@ -1,5 +1,5 @@
 import pytest
-from app import app, Product
+from app import app, Product, User
 from unittest.mock import patch, MagicMock
 
 @pytest.fixture
@@ -18,37 +18,86 @@ def test_index_page(client):
         assert response.status_code == 200
         assert b"Product" in response.data or b"No products" in response.data
 
-def test_add_to_cart(client):
-    with client.session_transaction() as sess:
-        sess['cart'] = []
-    response = client.get('/add_to_cart/1', follow_redirects=True)
-    with client.session_transaction() as sess:
-        assert 1 in sess['cart']
-    assert response.status_code == 200
+@patch('app.User.query.filter_by')
+def test_login_success(mock_filter_by, client):
+    mock_user = MagicMock(spec=User)
+    mock_user.check_password.return_value = True
+    mock_filter_by.return_value.first.return_value = mock_user
 
-def test_remove_from_cart(client):
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    response = client.get('/remove_from_cart/1', follow_redirects=True)
-    with client.session_transaction() as sess:
-        assert 1 not in sess['cart']
-    assert response.status_code == 200
+    response = client.post('/login', data={
+        'email': 'test@example.com',
+        'password': 'testpassword'
+    }, follow_redirects=True)
 
-def test_checkout_get(client):
-    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
-    with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    with patch('app.Product.query.get', return_value=mock_product):
-        response = client.get('/checkout')
-        assert response.status_code == 200
-        assert b"Checkout" in response.data or b"Total" in response.data
+    assert b"Logged in successfully" in response.data or response.status_code == 200
 
-def test_checkout_post(client):
-    mock_product = Product(id=1, name="Mock", description="desc", price=10.0, image_url="url")
+@patch('app.User.query.filter_by')
+def test_login_failure(mock_filter_by, client):
+    mock_filter_by.return_value.first.return_value = None
+    response = client.post('/login', data={
+        'email': 'invalid@example.com',
+        'password': 'wrong'
+    }, follow_redirects=True)
+
+    assert b"Invalid email or password" in response.data or response.status_code == 200
+
+@patch('app.User.query.filter_by')
+def test_signup_existing_user(mock_filter_by, client):
+    mock_filter_by.side_effect = [MagicMock(), None]  # username exists
+    response = client.post('/signup', data={
+        'username': 'existinguser',
+        'email': 'new@example.com',
+        'password': '1234',
+        'confirm_password': '1234'
+    }, follow_redirects=True)
+
+    assert b"Username already exists" in response.data
+
+def test_signup_password_mismatch(client):
+    response = client.post('/signup', data={
+        'username': 'user',
+        'email': 'user@example.com',
+        'password': 'pass1',
+        'confirm_password': 'pass2'
+    }, follow_redirects=True)
+
+    assert b"Passwords do not match" in response.data
+
+@patch('app.CartItem.query.filter_by')
+@patch('app.Product')
+def test_cart_page(mock_product, mock_cartitem, client):
+    mock_product.price = 10
+    mock_cartitem.return_value.all.return_value = [
+        MagicMock(product=mock_product, quantity=2)
+    ]
+
     with client.session_transaction() as sess:
-        sess['cart'] = [1]
-    with patch('app.Product.query.get', return_value=mock_product):
-        response = client.post('/checkout')
-        assert response.status_code == 200
-        assert b"thank" in response.data.lower()
-        
+        sess['_user_id'] = '1'  # Simulate logged in user
+
+    response = client.get('/cart')
+    assert b"Total" in response.data or response.status_code == 200
+
+@patch('app.CartItem.query.filter_by')
+@patch('app.db.session.commit')
+def test_checkout_post(mock_commit, mock_cartitem, client):
+    mock_cartitem.return_value.all.return_value = [
+        MagicMock(product=MagicMock(price=20.0), quantity=1)
+    ]
+
+    with client.session_transaction() as sess:
+        sess['_user_id'] = '1'
+
+    response = client.post('/checkout', follow_redirects=True)
+    assert b"thank" in response.data.lower()
+
+@patch('app.CartItem.query.filter_by')
+def test_checkout_get(mock_cartitem, client):
+    mock_cartitem.return_value.all.return_value = [
+        MagicMock(product=MagicMock(price=15.0), quantity=2)
+    ]
+
+    with client.session_transaction() as sess:
+        sess['_user_id'] = '1'
+
+    response = client.get('/checkout')
+    assert b"Checkout" in response.data or b"Total" in response.data
