@@ -31,8 +31,8 @@ jobs:
           export PYTHONPATH=.
           pytest
           
-      # - name: Trigger Jenkins if tests pass
-      #   if: success()
-      #   run: |
-      #     curl -X POST "${{ secrets.JENKINS_URL }}/job/${{ secrets.JENKINS_JOB }}/build?token=${{ secrets.JENKINS_TOKEN }}" \
-      #     --user "${{ secrets.JENKINS_USER || 'your-jenkins-username' }}:${{ secrets.JENKINS_API_TOKEN }}"
+      - name: Trigger Jenkins if tests pass
+        if: success()
+        run: |
+          curl -X POST "${{ secrets.JENKINS_URL }}/job/${{ secrets.JENKINS_JOB }}/build?token=${{ secrets.JENKINS_TOKEN }}" \
+          --user "${{ secrets.JENKINS_USER || 'your-jenkins-username' }}:${{ secrets.JENKINS_API_TOKEN }}"
