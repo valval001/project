@@ -15,7 +15,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 git url: 'https://github.com/valval001/project.git', branch: 'dev'
-                credentialsId: "${env.GIT_CRED_ID}"
             }
         }
 
