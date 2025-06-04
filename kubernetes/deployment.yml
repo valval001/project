@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: myweb
-        image: ditisspriyanshu/jenkins:74
+        image: ditisspriyanshu/jenkins:75
         ports:
         - containerPort: 5000
         env:
