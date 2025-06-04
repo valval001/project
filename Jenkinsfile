@@ -188,7 +188,7 @@ pipeline {
                         git config user.name "Jenkins CI"
                         git config user.email "jenkins@example.com"
 
-                        git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Agarwalpriyanshuu/dev.git
+                        git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/valval001/project.git
 
                         git fetch origin master
 
