@@ -3,7 +3,7 @@ name: Run Unit Tests and Trigger Jenkins
 on:
   push:
     branches:
-      - master
+      - dev
 
 jobs:
   test:

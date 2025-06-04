@@ -8,12 +8,14 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
         IMAGE_NAME = 'ditisspriyanshu/jenkins:latest'
         DEPENDENCY_CHECK_HOME = tool 'OWASP'
+        GIT_CRED_ID = 'git-token'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/valval001/project.git', branch: 'master'
+                git url: 'https://github.com/valval001/project.git', branch: 'dev'
+                credentialsId: "${env.GIT_CRED_ID}"
             }
         }
 
@@ -180,7 +182,28 @@ pipeline {
                 }
             }
         }
+        stage('Merge to Master') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${env.GIT_CRED_ID}", usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+                    sh '''
+                        git config user.name "Jenkins CI"
+                        git config user.email "jenkins@example.com"
+
+                        git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/Agarwalpriyanshuu/dev.git
+
+                        git fetch origin master
+
+                        git checkout master
+                        git merge origin/dev --no-edit
+
+                        git push origin master
+                    '''
+                }
+            }
+        }
+
     }
+        
 
     post {
         success {
