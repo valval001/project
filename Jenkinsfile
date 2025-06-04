@@ -6,7 +6,8 @@ pipeline {
         SONAR_TOKEN = credentials('sonar-token')
         FLASK_SECRET_KEY = credentials('flask-secret')
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-credentials')
-        IMAGE_NAME = 'ditisspriyanshu/jenkins:latest'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        IMAGE_NAME = "ditisspriyanshu/jenkins:${BUILD_NUMBER}"
         DEPENDENCY_CHECK_HOME = tool 'OWASP'
         GIT_CRED_ID = 'git-token'
     }
@@ -134,11 +135,10 @@ pipeline {
             steps {
                 dependencyTrackPublisher artifact: 'sbom-image.json',
                     projectName: 'ecommerce-image',
-                    projectVersion: '1.0.0',
+                    projectVersion: "${IMAGE_TAG}",
                     synchronous: true
             }
         }
-
 
         stage('Trivy Image Scan') {
             steps {
@@ -148,7 +148,7 @@ pipeline {
                     trivy image --ignore-unfixed --exit-code 1 --severity CRITICAL ${IMAGE_NAME} > trivy-image-report.txt || true
                     cat trivy-image-report.txt
 
-                    if grep -q "CRITICAL" trivy-image-report.html; then
+                    if grep -q "CRITICAL" trivy-image-report.txt; then
                         echo "Critical vulnerabilities found in Docker image."
                         docker rmi ${IMAGE_NAME}
                         exit 1
@@ -158,7 +158,7 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: 'trivy-image-report.*', fingerprint: true
-                    recordIssues enabledForFailure: true, tools: [trivy(pattern: 'trivy-image-report.json')]
+                    recordIssues enabledForFailure: true, tools: [trivy(pattern: 'trivy-image-report.txt')]
                     publishHTML(target: [
                         reportName: 'Trivy Image Report',
                         reportDir: '.',
@@ -181,28 +181,35 @@ pipeline {
                 }
             }
         }
-        stage('Merge to Master') {
+
+        stage('Merge to Master and Update Deployment') {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${env.GIT_CRED_ID}", usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-                    sh '''
+                    sh """
                         git config user.name "Jenkins CI"
                         git config user.email "jenkins@example.com"
 
                         git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/valval001/project.git
 
+                        # Fetch and checkout master
                         git fetch origin master
-
                         git checkout master
+
+                        # Merge dev into master
                         git merge origin/dev --no-edit
 
+                        # Update image tag in deployment.yml on master branch
+                        sed -i "s|image: ditisspriyanshu/jenkins:.*|image: ditisspriyanshu/jenkins:${BUILD_NUMBER}|" kubernetes/deployment.yml
+
+                        git add kubernetes/deployment.yml
+                        git commit -m "${BUILD_NUMBER}"
                         git push origin master
-                    '''
+                    """
                 }
             }
         }
 
     }
-        
 
     post {
         success {
@@ -219,5 +226,4 @@ pipeline {
             cleanWs()
         }
     }
-        
 }
